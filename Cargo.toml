@@ -1,0 +1,12 @@
+[package]
+name = "segv-test"
+version = "0.1.0"
+edition = "2024"
+description = "Macro to test that a segmentation fault occurs"
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/jprendes/segv-test"
+repository = "https://github.com/jprendes/segv-test"
+
+[build-dependencies]
+cc = "1.0"
