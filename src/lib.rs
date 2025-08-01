@@ -1,3 +1,50 @@
+//! A library to test that a segmentation fault occurs when executing a code block.
+//!
+//! It provides a macro [`assert_segv!`] that can be used to assert that a segmentation fault
+//! occurs when executing the given code block.
+//!
+//! ```rust
+//! # use segv_test::assert_segv;
+//! const INVALID_PTR: *mut i32 = 0x08 as *mut i32;
+//!
+//! assert_segv!(unsafe {
+//!     INVALID_PTR.write_volatile(1);
+//! }, "Writing to {INVALID_PTR:?} should fail");
+//!
+//! assert_segv!(unsafe {
+//!     INVALID_PTR.read_volatile();
+//! }, "Reading from {INVALID_PTR:?} should fail");
+//! ```
+//!
+//! If the code block does not cause a segmentation fault, it will raise a panic.
+//! ```rust,should_panic
+//! # use segv_test::assert_segv;
+//! let mut val = 0;
+//! let p = &raw mut val;
+//!
+//! // this assert will fail, as `p` is a valid pointer
+//! assert_segv!(unsafe {
+//!     p.write_volatile(1);
+//! });
+//! ```
+//!
+//! # Note
+//!
+//! <section class="warning">
+//!
+//! After the segmentation fault happens, the stack is not unwound.
+//! The control flow will return directly to the point where the macro
+//! was called.
+//!
+//! In particular, this means that drop will not be called after the
+//! segmentation fault occurs, and no cleanup will be performed.
+//!
+//! It is recommended to keep the code inside the macro as simple as
+//! possible to avoid leaking resources.
+//!
+//! </section>
+//!
+
 use std::any::Any;
 use std::cell::RefCell;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -52,51 +99,7 @@ pub fn check_segv(f: impl FnOnce()) -> bool {
 /// Macro to assert that a segmentation fault occurs when executing
 /// the given code block.
 ///
-/// If the code block does not cause a segmentation fault, it will panic.
-///
-/// # Examples
-///
-/// Reading or writing to an **invalid** pointer will trigger a segmentation fault:
-///
-/// ```
-/// # use segv_test::assert_segv;
-/// #
-/// const INVALID_PTR: *mut i32 = 0x08 as *mut i32;
-///
-/// assert_segv!(
-///     unsafe { INVALID_PTR.write_volatile(1); },
-///     "write should trigger a segv"
-/// );
-///
-/// assert_segv!(
-///     unsafe { INVALID_PTR.read_volatile(); },
-///     "read should trigger a segv"
-/// );
-/// ```
-///
-/// Reading or writing to an **valid** pointer will trigger a segmentation fault:
-///
-/// ```should_panic
-/// # use segv_test::assert_segv;
-/// #
-/// let mut val = 0;
-/// let valid_ptr = &raw mut val;
-///
-/// assert_segv!(
-///     unsafe { valid_ptr.write_volatile(1); },
-/// );
-/// ```
-///
-/// # Notes
-/// After the segmentation fault happens, the stack is not unwound.
-/// The control flow will return directly to the point where the macro
-/// was called.
-///
-/// In particular, this means that drop will not be called after the
-/// segmentation fault occurs, and no cleanup will be performed.
-///
-/// It is recommended to keep the code inside the macro as simple as
-/// possible to avoid leaking resources.
+/// See the [crate] level documentation for more details.
 ///
 #[macro_export]
 macro_rules! assert_segv {
